@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESUG Photo Tagging</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .photo-container { position: relative; display: inline-block; }
+        #esug-img { max-width: 100%; cursor: crosshair; }
+
+        #tooltip {
+            display: none;
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            pointer-events: none; /* So the tooltip doesn't steal hover events */
+            font-size: 14px;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>ESUG Group Photo 2026</h2>
+    <p>Hover to see details. Left-click to copy email. Right-click to propose a new tag.</p>
+
+    <div class="photo-container">
+        <!-- Ensure your image is named exactly this and placed in the public folder -->
+        <img id="esug-img" src="ESUG-Photo-2026.jpeg" alt="ESUG Group Photo">
+        <div id="tooltip"></div>
+    </div>
+
+    <script src="people-data.js"></script>
+    <script>
+        const img = document.getElementById('esug-img');
+        const tooltip = document.getElementById('tooltip');
+        let hoveredPerson = null;
+
+        // Utility to get true image coordinates regardless of CSS scaling
+        function getNativeCoordinates(e) {
+            const scaleX = img.naturalWidth / img.width;
+            const scaleY = img.naturalHeight / img.height;
+            return {
+                x: Math.round(e.offsetX * scaleX),
+                y: Math.round(e.offsetY * scaleY)
+            };
+        }
+
+        // 1. Mouse-over: Show name and email
+        img.addEventListener('mousemove', (e) => {
+            const coords = getNativeCoordinates(e);
+
+            // Find if mouse is within 'radius' distance of any person's x,y
+            hoveredPerson = people.find(p => {
+                const dx = p.x - coords.x;
+                const dy = p.y - coords.y;
+                return Math.sqrt(dx * dx + dy * dy) <= p.radius;
+            });
+
+            if (hoveredPerson) {
+                tooltip.innerHTML = `<strong>${hoveredPerson.name}</strong>` + (hoveredPerson.email?`<br>${hoveredPerson.email}`:'');
+                tooltip.style.display = 'block';
+                tooltip.style.left = (e.pageX + 5) + 'px';
+                tooltip.style.top = (e.pageY + 5) + 'px';
+                img.style.cursor = 'pointer';
+            } else {
+                tooltip.style.display = 'none';
+                img.style.cursor = 'crosshair';
+            }
+        });
+
+        // Hide tooltip when leaving image entirely
+        img.addEventListener('mouseleave', () => {
+            tooltip.style.display = 'none';
+            hoveredPerson = null;
+        });
+
+        // 2. Left-click: Copy email to clipboard
+        img.addEventListener('click', (e) => {
+            if (hoveredPerson) {
+                let copyText =  hoveredPerson.email?`${hoveredPerson.name} <${hoveredPerson.email}>`:hoveredPerson.name
+                navigator.clipboard.writeText(copyText).then(() => {
+                    alert(`Copied "${copyText}" to clipboard!`);
+                }).catch(err => {
+                    console.error('Failed to copy text: ', err);
+                });
+            }
+        });
+
+        // 3. Right-click: Prompt and send data to server
+        img.addEventListener('contextmenu', (e) => {
+            e.preventDefault(); // Prevent standard right-click menu
+
+            const coords = getNativeCoordinates(e);
+
+            const name = prompt("Enter the person's name:");
+            if (!name) return; // User cancelled
+
+            const email = prompt("Enter the person's email:");
+            if (!email) return; // User cancelled
+
+            // Send to Node.js backend
+            fetch('/tag', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ x: coords.x, y: coords.y, name, email })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Thank you.\nSent tagging info for ${name} to the page owner!\nIt will be updated within a day or so.`);
+                } else {
+                    alert(`Error sending email: ${data.error}`);
+                }
+            })
+            .catch(err => console.error(err));
+        });
+    </script>
+</body>
+</html>
