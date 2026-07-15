@@ -8,7 +8,7 @@ const PORT = 3000;
 
 // Middleware to parse JSON and serve the public folder
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use('/esug2026',express.static(path.join(__dirname, 'public')));
 
 // --- EMAIL CONFIGURATION ---
 // Replace these with your actual SMTP credentials
@@ -21,7 +21,7 @@ const transporter = nodemailer.createTransport({
 });
 
 // Endpoint to handle the right-click tagging
-app.post('/tag', (req, res) => {
+app.post('/esug2026/tag', (req, res) => {
     const { x, y, name, email } = req.body;
 
     const mailOptions = {

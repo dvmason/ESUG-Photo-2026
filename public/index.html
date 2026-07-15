@@ -103,7 +103,7 @@
             if (!email) return; // User cancelled
 
             // Send to Node.js backend
-            fetch('/tag', {
+            fetch('/esug2026/tag', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ x: coords.x, y: coords.y, name, email })
